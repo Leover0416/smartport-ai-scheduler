@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Berth, Ship, ShipType } from '../types';
 
 interface PortMapProps {
@@ -9,31 +9,98 @@ interface PortMapProps {
   processingShipIds?: string[]; // 正在处理中的船只ID列表
 }
 
-// Layout Constants
+// Layout Constants - 使用百分比和相对单位，确保响应式
 const MAP_CONFIG = {
-  ANCHORAGE_X: 80, 
-  ANCHORAGE_Y: 250, 
-  BERTH_START_X: 850, // Right side
-  BERTH_START_Y: 5, // 再往上移一点，确保C2完全可见
-  BERTH_SPACING: 68, // 稍微减小间距
-  BERTH_HEIGHT: 52,  // 稍微减小高度
-  CHANNEL_WAYPOINT_X: 450, // Fixed waypoint for alignment
-  CHANNEL_WAYPOINT_Y: 350,
-  // 锚地配置
-  ANCHORAGE_WIDTH: 280, // 扩大锚地宽度
-  ANCHORAGE_HEIGHT: 200, // 扩大锚地高度
-  ANCHORAGE_SHIP_SPACING_X: 60, // 船只水平间距
-  ANCHORAGE_SHIP_SPACING_Y: 45, // 船只垂直间距
+  // 锚地位置（相对于容器宽度的百分比）
+  ANCHORAGE_X_PERCENT: 8, // 左侧8%位置
+  ANCHORAGE_Y_PERCENT: 45, // 从上往下45%位置
+  // 泊位位置（相对于容器宽度的百分比）
+  BERTH_START_X_PERCENT: 88, // 右侧88%位置
+  BERTH_START_Y_PERCENT: 1, // 顶部1%位置
+  BERTH_SPACING_PERCENT: 12, // 泊位间距（相对于容器高度）
+  BERTH_HEIGHT_PERCENT: 9,  // 泊位高度（相对于容器高度）
+  // 航道航点（相对于容器尺寸的百分比）
+  CHANNEL_WAYPOINT_X_PERCENT: 45, // 中间偏左
+  CHANNEL_WAYPOINT_Y_PERCENT: 55, // 中间偏下
+  // 锚地配置（相对于容器尺寸的百分比）
+  ANCHORAGE_WIDTH_PERCENT: 28, // 锚地宽度
+  ANCHORAGE_HEIGHT_PERCENT: 35, // 锚地高度
+  ANCHORAGE_SHIP_SPACING_X_PERCENT: 6, // 船只水平间距
+  ANCHORAGE_SHIP_SPACING_Y_PERCENT: 8, // 船只垂直间距
+  // 最小尺寸限制（像素）
+  MIN_ANCHORAGE_WIDTH: 200,
+  MIN_ANCHORAGE_HEIGHT: 150,
+  MIN_BERTH_SPACING: 50,
+  MIN_BERTH_HEIGHT: 40,
 };
 
 const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBerthClick, processingShipIds = [] }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ width: 1000, height: 600 });
+
+  // 监听容器尺寸变化
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerSize({ width: rect.width, height: rect.height });
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    const resizeObserver = new ResizeObserver(updateSize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', updateSize);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // 根据容器尺寸计算实际像素值
+  const getConfig = () => {
+    const width = containerSize.width;
+    const height = containerSize.height;
+    
+    return {
+      anchorageX: (width * MAP_CONFIG.ANCHORAGE_X_PERCENT) / 100,
+      anchorageY: (height * MAP_CONFIG.ANCHORAGE_Y_PERCENT) / 100,
+      berthStartX: (width * MAP_CONFIG.BERTH_START_X_PERCENT) / 100,
+      berthStartY: (height * MAP_CONFIG.BERTH_START_Y_PERCENT) / 100,
+      berthSpacing: Math.max(
+        (height * MAP_CONFIG.BERTH_SPACING_PERCENT) / 100,
+        MAP_CONFIG.MIN_BERTH_SPACING
+      ),
+      berthHeight: Math.max(
+        (height * MAP_CONFIG.BERTH_HEIGHT_PERCENT) / 100,
+        MAP_CONFIG.MIN_BERTH_HEIGHT
+      ),
+      channelWaypointX: (width * MAP_CONFIG.CHANNEL_WAYPOINT_X_PERCENT) / 100,
+      channelWaypointY: (height * MAP_CONFIG.CHANNEL_WAYPOINT_Y_PERCENT) / 100,
+      anchorageWidth: Math.max(
+        (width * MAP_CONFIG.ANCHORAGE_WIDTH_PERCENT) / 100,
+        MAP_CONFIG.MIN_ANCHORAGE_WIDTH
+      ),
+      anchorageHeight: Math.max(
+        (height * MAP_CONFIG.ANCHORAGE_HEIGHT_PERCENT) / 100,
+        MAP_CONFIG.MIN_ANCHORAGE_HEIGHT
+      ),
+      anchorageShipSpacingX: (width * MAP_CONFIG.ANCHORAGE_SHIP_SPACING_X_PERCENT) / 100,
+      anchorageShipSpacingY: (height * MAP_CONFIG.ANCHORAGE_SHIP_SPACING_Y_PERCENT) / 100,
+    };
+  };
+
+  const config = getConfig();
   
   const getBerthCenterPosition = (berthId: string) => {
     const berthIndex = berths.findIndex(b => b.id === berthId);
     if (berthIndex === -1) return null;
     return {
-      x: MAP_CONFIG.BERTH_START_X - 120, // Entrance point
-      y: MAP_CONFIG.BERTH_START_Y + berthIndex * MAP_CONFIG.BERTH_SPACING + (MAP_CONFIG.BERTH_HEIGHT / 2)
+      x: config.berthStartX - 120, // Entrance point
+      y: config.berthStartY + berthIndex * config.berthSpacing + (config.berthHeight / 2)
     };
   };
 
@@ -45,24 +112,24 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
       if (waitingIndex === -1) return { x: -9999, y: -9999 };
       
       // 计算每行可以放多少艘船（根据锚地宽度）
-      const shipsPerRow = Math.floor(MAP_CONFIG.ANCHORAGE_WIDTH / MAP_CONFIG.ANCHORAGE_SHIP_SPACING_X);
+      const shipsPerRow = Math.floor(config.anchorageWidth / config.anchorageShipSpacingX);
       const row = Math.floor(waitingIndex / shipsPerRow);
       const col = waitingIndex % shipsPerRow;
       
       // 居中排列
       const totalInRow = Math.min(shipsPerRow, waitingShips.length - row * shipsPerRow);
-      const startX = MAP_CONFIG.ANCHORAGE_X + (MAP_CONFIG.ANCHORAGE_WIDTH - (totalInRow - 1) * MAP_CONFIG.ANCHORAGE_SHIP_SPACING_X) / 2;
+      const startX = config.anchorageX + (config.anchorageWidth - (totalInRow - 1) * config.anchorageShipSpacingX) / 2;
       
       return { 
-        x: startX + (col * MAP_CONFIG.ANCHORAGE_SHIP_SPACING_X), 
-        y: MAP_CONFIG.ANCHORAGE_Y + (row * MAP_CONFIG.ANCHORAGE_SHIP_SPACING_Y)
+        x: startX + (col * config.anchorageShipSpacingX), 
+        y: config.anchorageY + (row * config.anchorageShipSpacingY)
       };
     }
     
     // 2. Navigating (Moves to Waypoint)
     // 由于现在是一艘船走完再走下一艘，所以不需要错开位置
     if (ship.status === 'navigating') {
-        return { x: MAP_CONFIG.CHANNEL_WAYPOINT_X, y: MAP_CONFIG.CHANNEL_WAYPOINT_Y };
+        return { x: config.channelWaypointX, y: config.channelWaypointY };
     }
 
     // 3. Docking (Moves from Waypoint to Berth)
@@ -117,7 +184,7 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
   };
 
   return (
-    <div className="relative w-full h-full bg-[#3b82f6] overflow-hidden rounded-lg shadow-inner select-none font-sans">
+    <div ref={containerRef} className="relative w-full h-full bg-[#3b82f6] overflow-hidden rounded-lg shadow-inner select-none font-sans">
       
       {/* 1. Realistic Pale Blue Sea Background */}
       <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#60a5fa] via-[#3b82f6] to-[#1e40af]">
@@ -226,21 +293,28 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
       </div>
       
       {/* 2. Physical Zones */}
-      <div className="absolute top-0 right-0 w-[140px] h-full bg-[#cbd5e1] border-l-4 border-slate-400 z-10 shadow-2xl">
+      <div className="absolute top-0 right-0 h-full bg-[#cbd5e1] border-l-4 border-slate-400 z-10 shadow-2xl"
+           style={{ width: `${containerSize.width * 0.12}px` }}>
          <div className="absolute top-4 right-2 text-slate-500 font-black text-sm rotate-90 origin-right tracking-widest">PORT TERMINAL</div>
       </div>
 
       <div className="absolute border-2 border-dashed border-white/30 rounded-xl bg-white/5 z-0"
            style={{ 
-             left: `${MAP_CONFIG.ANCHORAGE_X - 20}px`,
-             bottom: '30px',
-             width: `${MAP_CONFIG.ANCHORAGE_WIDTH}px`, 
-             height: `${MAP_CONFIG.ANCHORAGE_HEIGHT}px` 
+             left: `${config.anchorageX - 20}px`,
+             bottom: `${containerSize.height * 0.05}px`,
+             width: `${config.anchorageWidth}px`, 
+             height: `${config.anchorageHeight}px` 
            }}>
          <span className="absolute top-2 left-2 text-xs text-white/80 font-bold tracking-widest bg-blue-900/30 px-2 py-0.5 rounded backdrop-blur-sm">锚地 (ANCHORAGE)</span>
       </div>
 
-      <div className="absolute top-[280px] left-[200px] w-[500px] h-[120px] bg-gradient-to-r from-transparent via-blue-900/20 to-transparent transform -rotate-3 pointer-events-none border-y border-dashed border-white/20">
+      <div className="absolute bg-gradient-to-r from-transparent via-blue-900/20 to-transparent transform -rotate-3 pointer-events-none border-y border-dashed border-white/20"
+           style={{
+             top: `${containerSize.height * 0.35}px`,
+             left: `${containerSize.width * 0.18}px`,
+             width: `${containerSize.width * 0.45}px`,
+             height: `${containerSize.height * 0.2}px`
+           }}>
          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-white/60 font-bold">深水主航道 (DEEP CHANNEL)</div>
       </div>
 
@@ -254,8 +328,8 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
          
          {ships.map((ship, idx) => {
            if ((ship.status === 'navigating' || ship.status === 'docking') && ship.assignedBerthId) {
-             const startPos = { x: MAP_CONFIG.ANCHORAGE_X + 60, y: MAP_CONFIG.ANCHORAGE_Y + 50 };
-             const midPos = { x: MAP_CONFIG.CHANNEL_WAYPOINT_X, y: MAP_CONFIG.CHANNEL_WAYPOINT_Y };
+             const startPos = { x: config.anchorageX + 60, y: config.anchorageY + 50 };
+             const midPos = { x: config.channelWaypointX, y: config.channelWaypointY };
              const endPos = getBerthCenterPosition(ship.assignedBerthId);
              
              if (endPos) {
@@ -281,14 +355,14 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
       </svg>
 
       {/* 4. Berths */}
-      <div className="absolute right-0 w-[160px] flex flex-col z-20" style={{ top: MAP_CONFIG.BERTH_START_Y }}>
+      <div className="absolute right-0 flex flex-col z-20" style={{ top: config.berthStartY, width: `${containerSize.width * 0.12}px` }}>
         {berths.map((berth, idx) => {
           const dockedShip = ships.find(s => s.assignedBerthId === berth.id && s.status === 'docked');
           return (
           <div 
              key={berth.id} 
              className={`relative w-full group transition-all duration-300 ${berth.isOccupied ? 'cursor-pointer' : ''}`}
-             style={{ height: MAP_CONFIG.BERTH_SPACING }}
+             style={{ height: config.berthSpacing }}
              onClick={(e) => { 
                // 如果点击的不是船只本身，才触发泊位点击
                if (berth.isOccupied && !(e.target as HTMLElement).closest('.ship-container')) {
@@ -304,9 +378,9 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
               )}
               
               <div 
-                className={`absolute right-[0px] w-[150px] border-y border-l border-slate-400 shadow-[inset_2px_2px_10px_rgba(0,0,0,0.2)] transition-colors
+                className={`absolute right-[0px] border-y border-l border-slate-400 shadow-[inset_2px_2px_10px_rgba(0,0,0,0.2)] transition-colors
                     ${berth.isOccupied ? 'bg-slate-300' : 'bg-gradient-to-r from-[#60a5fa] to-[#cbd5e1]'}`}
-                style={{ height: MAP_CONFIG.BERTH_HEIGHT, top: 0 }}
+                style={{ height: config.berthHeight, top: 0, width: `${containerSize.width * 0.1}px` }}
               >
                  {/* Zone Label */}
                  <div className="absolute top-1 left-2 text-xs font-bold text-slate-700 font-mono">{berth.id.split(' ')[0]}</div>
@@ -341,10 +415,10 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
         if (ship.status === 'docked' && ship.assignedBerthId) {
             const berthIndex = berths.findIndex(b => b.id === ship.assignedBerthId);
             if (berthIndex !== -1) {
-                const topVal = MAP_CONFIG.BERTH_START_Y + berthIndex * MAP_CONFIG.BERTH_SPACING + (MAP_CONFIG.BERTH_HEIGHT / 2);
+                const topVal = config.berthStartY + berthIndex * config.berthSpacing + (config.berthHeight / 2);
                 return (
                     <div key={ship.id} className="absolute z-30 transition-all duration-[2000ms] ease-out ship-container"
-                        style={{ right: '40px', top: `${topVal}px`, transform: 'translateY(-50%)' }}>
+                        style={{ right: `${containerSize.width * 0.04}px`, top: `${topVal}px`, transform: 'translateY(-50%)' }}>
                         <div className="relative group cursor-pointer" onClick={(e) => {
                             e.stopPropagation(); // 阻止事件冒泡
                             onBerthClick && onBerthClick(ship.assignedBerthId!);
