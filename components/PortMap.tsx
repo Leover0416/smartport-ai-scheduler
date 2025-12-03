@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Berth, Ship } from '../types';
 
 interface PortMapProps {
@@ -47,9 +47,49 @@ const BERTH_DOCKED_ROTATION: Record<string, number> = {
   'C02': 72,   // 朝右
 };
 
+// 地图原始尺寸
+const MAP_ORIGINAL_WIDTH = 800;
+const MAP_ORIGINAL_HEIGHT = 500;
+
 const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBerthClick, processingShipIds = [] }) => {
   // 当前选中的泊位，用于显示信息弹窗
   const [selectedBerth, setSelectedBerth] = useState<Berth | null>(null);
+  // 缩放比例
+  const [scale, setScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // 计算缩放比例，使地图适应容器
+  useEffect(() => {
+    const updateScale = () => {
+      if (containerRef.current) {
+        const container = containerRef.current;
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+        
+        // 计算缩放比例，保持宽高比，确保地图完全适应容器
+        const scaleX = containerWidth / MAP_ORIGINAL_WIDTH;
+        const scaleY = containerHeight / MAP_ORIGINAL_HEIGHT;
+        const newScale = Math.min(scaleX, scaleY); // 取较小值以保持比例，确保不超出容器
+        
+        setScale(Math.max(0.1, Math.min(newScale, 2))); // 限制缩放范围在0.1到2之间
+      }
+    };
+
+    // 初始计算
+    updateScale();
+    
+    // 使用ResizeObserver监听容器尺寸变化
+    const resizeObserver = new ResizeObserver(updateScale);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    window.addEventListener('resize', updateScale);
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      resizeObserver.disconnect();
+    };
+  }, []);
   
   const getBerthCenterPosition = (berthId: string) => {
     // 直接从地图背景上的泊位位置获取
@@ -154,64 +194,34 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans" style={{ position: 'relative' }}>
-      
-      {/* 1. 地图背景 - 固定尺寸，不随窗口拉伸变化，位置焊死在地图上 */}
-      <div className="absolute z-0" style={{ width: '800px', height: '500px', left: 0, top: 0 }}>
-        <img 
-          src="/地图背景.png" 
-          alt="地图背景"
-          style={{ width: '800px', height: '500px', objectFit: 'cover', display: 'block' }}
-        />
-      </div>
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans" 
+      style={{ position: 'relative' }}
+    >
+      {/* 缩放容器 - 保持800x500的坐标系，通过transform scale适应容器 */}
+      <div 
+        className="absolute"
+        style={{
+          width: `${MAP_ORIGINAL_WIDTH}px`,
+          height: `${MAP_ORIGINAL_HEIGHT}px`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'center center',
+          left: '50%',
+          top: '50%',
+          marginLeft: `-${MAP_ORIGINAL_WIDTH / 2}px`,
+          marginTop: `-${MAP_ORIGINAL_HEIGHT / 2}px`,
+        }}
+      >
+        {/* 1. 地图背景 */}
+        <div className="absolute z-0" style={{ width: '800px', height: '500px', left: 0, top: 0 }}>
+          <img 
+            src="/地图背景.png" 
+            alt="地图背景"
+            style={{ width: '800px', height: '500px', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
 
-      {/* 2. 潮汐波浪特效 - 使用多层波浪动画 */}
-      <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
-        {/* 第一层波浪 - 慢速大波浪 */}
-        <svg className="absolute bottom-0 w-full h-1/3 animate-tide-wave-1" preserveAspectRatio="none" viewBox="0 0 1200 200">
-          <defs>
-            <linearGradient id="waveGradient1" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.2)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.1)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </linearGradient>
-          </defs>
-          <path 
-            d="M0,150 Q300,120 600,150 T1200,150 L1200,200 L0,200 Z" 
-            fill="url(#waveGradient1)"
-          />
-        </svg>
-        
-        {/* 第二层波浪 - 中速中波浪 */}
-        <svg className="absolute bottom-0 w-full h-1/4 animate-tide-wave-2" preserveAspectRatio="none" viewBox="0 0 1200 200">
-          <defs>
-            <linearGradient id="waveGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.08)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </linearGradient>
-          </defs>
-          <path 
-            d="M0,160 Q400,130 800,160 T1600,160 L1600,200 L0,200 Z" 
-            fill="url(#waveGradient2)"
-          />
-        </svg>
-        
-        {/* 第三层波浪 - 快速小波浪 */}
-        <svg className="absolute bottom-0 w-full h-1/5 animate-tide-wave-3" preserveAspectRatio="none" viewBox="0 0 1200 200">
-          <defs>
-            <linearGradient id="waveGradient3" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.12)" />
-              <stop offset="50%" stopColor="rgba(255,255,255,0.06)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-            </linearGradient>
-          </defs>
-          <path 
-            d="M0,170 Q200,150 400,170 T800,170 T1200,170 L1200,200 L0,200 Z" 
-            fill="url(#waveGradient3)"
-          />
-        </svg>
-      </div>
 
       {/* 3. 风速特效 - 流动的线条和粒子 */}
       <div className="absolute inset-0 z-[1] pointer-events-none opacity-40">
@@ -585,6 +595,8 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
         );
         });
       })()}
+      </div>
+      {/* 缩放容器结束 */}
     </div>
   );
 };

@@ -677,7 +677,7 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Grid */}
-      <main className="flex-1 p-3 grid grid-cols-12 gap-3 overflow-hidden min-h-0">
+      <main className="flex-1 p-3 grid grid-cols-12 gap-3 overflow-hidden min-h-0 w-full">
         
         {/* Left: List & Gantt */}
         <div className="col-span-2 flex flex-col gap-3 min-h-0">
