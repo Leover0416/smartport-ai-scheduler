@@ -352,27 +352,6 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
         </svg>
       </div>
       
-      {/* 镇海锚地（绿色区域上的等候区） */}
-      <div className="absolute border-2 border-dashed border-white/30 rounded-xl bg-white/5 z-0"
-           style={{ 
-             left: `${MAP_CONFIG.ANCHORAGE_X - 40}px`,
-             top: `${MAP_CONFIG.ANCHORAGE_Y - MAP_CONFIG.ANCHORAGE_HEIGHT / 2}px`,
-             width: `${MAP_CONFIG.ANCHORAGE_WIDTH}px`, 
-             height: `${MAP_CONFIG.ANCHORAGE_HEIGHT}px` 
-           }}>
-         <span className="absolute top-2 left-2 text-xs text-white/80 font-bold tracking-widest bg-blue-900/30 px-2 py-0.5 rounded backdrop-blur-sm">
-           镇海锚地
-         </span>
-      </div>
-
-      {/* 主航道示意框（大致标记中间海域，方便你后面微调位置） */}
-      <div
-        className="absolute left-[90px] top-[200px] w-[400px] h-[120px] border border-cyan-500/40 bg-cyan-900/8 rounded-xl pointer-events-none"
-      >
-        <span className="absolute top-1 left-2 text-[10px] text-cyan-200 font-bold bg-cyan-900/60 px-1.5 py-0.5 rounded">
-          主航道（示意）
-        </span>
-      </div>
 
       {/* 3. Trajectory Lines - 每艘船从锚地实际位置到泊位的整条曲线路径 */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
