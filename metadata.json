@@ -1,0 +1,5 @@
+{
+  "name": "SmartPort AI Scheduler",
+  "description": "A Digital Twin visualization of a Multi-Agent Reinforcement Learning system for port logistics and ship scheduling optimization.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能港口多智能体调度系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Microsoft YaHei"', '"PingFang SC"', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'monospace'],
+            },
+            colors: {
+              'tech-bg': '#0f172a',      // Slate 900
+              'tech-panel': '#1e293b',   // Slate 800
+              'tech-border': '#334155',  // Slate 700
+              'tech-blue': '#3b82f6',    // Blue 500
+              'tech-cyan': '#06b6d4',    // Cyan 500
+              'tech-sea': '#1e293b',     // Dark Sea
+              'tech-deep': '#1e3a8a',    // Deep Blue
+              'tech-land': '#475569',    // Concrete
+            },
+            animation: {
+              'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'dash': 'dash 3s linear infinite',
+              'shimmer': 'shimmer 2s ease-in-out infinite',
+              'tide-wave-1': 'tideWave1 4s ease-in-out infinite',
+              'tide-wave-2': 'tideWave2 3.5s ease-in-out infinite',
+              'tide-wave-3': 'tideWave3 3s ease-in-out infinite',
+              'wind-flow': 'windFlow 8s linear infinite',
+            },
+            keyframes: {
+              dash: {
+                to: {
+                  strokeDashoffset: '0',
+                },
+              },
+              shimmer: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' },
+              },
+              tideWave1: {
+                '0%, 100%': { 
+                  transform: 'translateX(0) translateY(0)',
+                  opacity: '0.8'
+                },
+                '25%': { 
+                  transform: 'translateX(-20px) translateY(-5px)',
+                  opacity: '0.9'
+                },
+                '50%': { 
+                  transform: 'translateX(0) translateY(-10px)',
+                  opacity: '1'
+                },
+                '75%': { 
+                  transform: 'translateX(20px) translateY(-5px)',
+                  opacity: '0.9'
+                },
+              },
+              tideWave2: {
+                '0%, 100%': { 
+                  transform: 'translateX(0) translateY(0)',
+                  opacity: '0.7'
+                },
+                '25%': { 
+                  transform: 'translateX(15px) translateY(-4px)',
+                  opacity: '0.8'
+                },
+                '50%': { 
+                  transform: 'translateX(0) translateY(-8px)',
+                  opacity: '0.9'
+                },
+                '75%': { 
+                  transform: 'translateX(-15px) translateY(-4px)',
+                  opacity: '0.8'
+                },
+              },
+              tideWave3: {
+                '0%, 100%': { 
+                  transform: 'translateX(0) translateY(0)',
+                  opacity: '0.6'
+                },
+                '25%': { 
+                  transform: 'translateX(-10px) translateY(-3px)',
+                  opacity: '0.7'
+                },
+                '50%': { 
+                  transform: 'translateX(0) translateY(-6px)',
+                  opacity: '0.8'
+                },
+                '75%': { 
+                  transform: 'translateX(10px) translateY(-3px)',
+                  opacity: '0.7'
+                },
+              },
+              windFlow: {
+                '0%': { 
+                  transform: 'translateX(-100%)',
+                  opacity: '0'
+                },
+                '10%': { 
+                  opacity: '0.3'
+                },
+                '90%': { 
+                  opacity: '0.3'
+                },
+                '100%': { 
+                  transform: 'translateX(100%)',
+                  opacity: '0'
+                },
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0f172a; 
+        color: #e2e8f0;
+        overflow-y: hidden; /* App handles scrolling */
+        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      }
+      /* Custom Scrollbar - Blue Tech */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1e293b; 
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569; 
+        border-radius: 3px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #64748b; 
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
