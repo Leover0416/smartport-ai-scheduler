@@ -58,7 +58,7 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
   const [scale, setScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 计算缩放比例，使地图适应容器
+  // 计算缩放比例，使地图完全填充容器（不留黑边）
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
@@ -66,12 +66,12 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
         
-        // 计算缩放比例，保持宽高比，确保地图完全适应容器
+        // 计算缩放比例，使用较大值以完全填充容器（可能会稍微裁剪边缘）
         const scaleX = containerWidth / MAP_ORIGINAL_WIDTH;
         const scaleY = containerHeight / MAP_ORIGINAL_HEIGHT;
-        const newScale = Math.min(scaleX, scaleY); // 取较小值以保持比例，确保不超出容器
+        const newScale = Math.max(scaleX, scaleY); // 取较大值以完全填充，不留黑边
         
-        setScale(Math.max(0.1, Math.min(newScale, 2))); // 限制缩放范围在0.1到2之间
+        setScale(Math.max(0.1, Math.min(newScale, 3))); // 限制缩放范围在0.1到3之间
       }
     };
 
@@ -196,9 +196,19 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans" 
+      className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans bg-slate-900" 
       style={{ position: 'relative' }}
     >
+      {/* 地图背景层 - 直接填满容器，不留黑边 */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="/地图背景.png" 
+          alt="地图背景"
+          className="w-full h-full"
+          style={{ objectFit: 'cover', display: 'block' }}
+        />
+      </div>
+
       {/* 缩放容器 - 保持800x500的坐标系，通过transform scale适应容器 */}
       <div 
         className="absolute"
@@ -213,14 +223,6 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
           marginTop: `-${MAP_ORIGINAL_HEIGHT / 2}px`,
         }}
       >
-        {/* 1. 地图背景 */}
-        <div className="absolute z-0" style={{ width: '800px', height: '500px', left: 0, top: 0 }}>
-          <img 
-            src="/地图背景.png" 
-            alt="地图背景"
-            style={{ width: '800px', height: '500px', objectFit: 'cover', display: 'block' }}
-          />
-        </div>
 
 
       {/* 3. 风速特效 - 流动的线条和粒子 */}
