@@ -32,6 +32,7 @@ export interface Ship {
   name: string;
   type: ShipType;
   length: number; // meters
+  width: number;  // meters
   draft: number; // meters
   priority: number; // 1-10
   status: 'waiting' | 'navigating' | 'docking' | 'docked' | 'departing';
@@ -42,6 +43,19 @@ export interface Ship {
   etaCorrected?: string;
   earliestOperationTime?: string; // EOT
   isDelayed?: boolean;
+
+  // AIS / 航行信息（可选）
+  headingDeg?: number;           // 船首向（度）
+  courseOverGroundDeg?: number;  // 航向 COG（度）
+  callSign?: string;             // 呼号
+  imo?: string;                  // IMO 编号
+  speedKnots?: number;           // 航速（节）
+  navStatusText?: string;        // 航行状态文本（如：靠泊、在航）
+  latitudeText?: string;         // 纬度文本，如 29-56.795N
+  longitudeText?: string;        // 经度文本，如 121-42.778E
+  destination?: string;          // 目的地
+  etaFullText?: string;          // 完整 ETA 文本
+  lastUpdateTime?: string;       // 数据更新时间
 
   // Phase 1b: 船舶能耗 - 航速关联属性数据
   vspSavings?: number; // 按船舶能耗 - 航速关联属性计算的节油量（吨）

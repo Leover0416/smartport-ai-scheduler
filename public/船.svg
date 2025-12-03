@@ -1,0 +1,11 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Upright/Slightly tilted -->
+  <g transform="rotate(5, 50, 50)">
+    <!-- Long body, flat stern -->
+    <path d="M38 90 L38 30 L50 10 L62 30 L62 90 Z" 
+          fill="#FFDC32" 
+          stroke="#888888" 
+          stroke-width="2.2" 
+          stroke-linejoin="round"/>
+  </g>
+</svg>

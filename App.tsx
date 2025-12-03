@@ -51,6 +51,20 @@ const App: React.FC = () => {
       return { zone: 'C', label: 'C区(支线)', berths: ['C01', 'C02'] };
   };
 
+  // 检查泊位是否满足船舶约束
+  const checkBerthConstraints = (ship: Ship, berth: Berth): boolean => {
+      // 1. 长度约束：泊位长度需≥船舶长度×1.1
+      if (berth.length < ship.length * 1.1) return false;
+      
+      // 2. 吃水深度上限：船舶吃水不能超过15米
+      if (ship.draft > 15) return false;
+      
+      // 3. 类型约束：油轮必须去A区
+      if (ship.type === ShipType.TANKER && berth.zone !== 'A') return false;
+      
+      return true;
+  };
+
   const addMessage = (from: AgentType, to: AgentType | 'ALL', content: string, type: 'info' | 'warning' | 'success' | 'negotiation' = 'info') => {
     const newMessage: AgentMessage = {
       id: Math.random().toString(36).substr(2, 9),
@@ -193,9 +207,9 @@ const App: React.FC = () => {
                    const c = { 
                        length: rec.berths.some(bid => {
                            const b = berths.find(berth => berth.id === bid);
-                           return b ? b.length >= s.length * 1.1 : false;
+                           return b ? checkBerthConstraints(s, b) : false;
                        }),
-                       draftTide: tideCheck.feasible,
+                       draftTide: tideCheck.feasible && s.draft <= 15, // 同时检查吃水深度上限
                        channel: true,
                        special: s.type === ShipType.TANKER
                    };
@@ -266,10 +280,20 @@ const App: React.FC = () => {
               // 生成初始解（规则启发式）
               batch.forEach((s) => {
                   const rec = getRecommendedZone(s);
-                  let finalBerth = rec.berths.find(p => !assigned.has(p));
+                  // 先找推荐区域内的泊位，检查约束
+                  let finalBerth = rec.berths.find(p => {
+                      if (assigned.has(p)) return false;
+                      const berth = berths.find(b => b.id === p);
+                      return berth && checkBerthConstraints(s, berth);
+                  });
                   
+                  // 如果B区没找到，尝试A区
                   if (!finalBerth && rec.zone === 'B') {
-                      finalBerth = ['A01', 'A02'].find(p => !assigned.has(p));
+                      finalBerth = ['A01', 'A02'].find(p => {
+                          if (assigned.has(p)) return false;
+                          const berth = berths.find(b => b.id === p);
+                          return berth && checkBerthConstraints(s, berth);
+                      });
                   }
 
                   if (finalBerth) {
@@ -686,7 +710,7 @@ const App: React.FC = () => {
                                         </div>
                                         <div className="text-sm text-slate-400 truncate font-bold">{ship.name}</div>
                                         <div className="flex justify-between mt-1 text-xs text-slate-500 font-mono">
-                                            <span>Len:{ship.length}m</span>
+                                            <span>Len:{ship.length}m / W:{ship.width}m</span>
                                             <span className={ship.status === 'docked' ? 'text-emerald-500' : 'text-blue-400'}>
                                                 {ship.status === 'waiting' ? '待港' : ship.status === 'navigating' ? '航行中' : ship.status === 'docking' ? '靠泊中' : '作业中'}
                                             </span>
@@ -753,57 +777,110 @@ const App: React.FC = () => {
                             ✕
                         </button>
                     </div>
-                    <div className="space-y-2.5 text-sm">
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">船舶ID:</span>
-                            <span className="text-slate-200 font-mono font-bold">{selectedShipForDetail.id}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">船名:</span>
-                            <span className="text-slate-200 font-bold">{selectedShipForDetail.name}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">类型:</span>
-                            <span className="text-slate-300">{selectedShipForDetail.type}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">长度:</span>
-                            <span className="text-slate-200 font-mono">{selectedShipForDetail.length}m</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">吃水:</span>
-                            <span className="text-slate-200 font-mono">{selectedShipForDetail.draft}m</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">优先级:</span>
-                            <span className="text-slate-200 font-mono">{selectedShipForDetail.priority}/10</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1">
-                            <span className="text-slate-400">状态:</span>
-                            <span className={`font-bold ${
-                                selectedShipForDetail.status === 'docked' ? 'text-emerald-400' : 
-                                selectedShipForDetail.status === 'waiting' ? 'text-blue-400' : 
-                                selectedShipForDetail.status === 'navigating' ? 'text-cyan-400' : 
-                                'text-amber-400'
-                            }`}>
-                                {selectedShipForDetail.status === 'waiting' ? '待港' : 
-                                 selectedShipForDetail.status === 'navigating' ? '航行中' : 
-                                 selectedShipForDetail.status === 'docking' ? '靠泊中' : 
-                                 selectedShipForDetail.status === 'docked' ? '作业中' : '离港中'}
-                            </span>
-                        </div>
-                        {selectedShipForDetail.etaOriginal && (
-                            <div className="flex justify-between items-center py-1">
-                                <span className="text-slate-400">预计到港:</span>
-                                <span className="text-slate-200 font-mono">{selectedShipForDetail.etaOriginal}</span>
+                    <div className="space-y-3 text-sm">
+                        {/* 上半部分：AIS / 识别信息 */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-xs bg-slate-900/60 rounded-lg p-2 border border-slate-700/60">
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">MMSI:</span>
+                                <span className="text-slate-200 font-bold">{selectedShipForDetail.id}</span>
                             </div>
-                        )}
-                        {selectedShipForDetail.assignedBerthId && (
-                            <div className="flex justify-between items-center py-1">
-                                <span className="text-slate-400">分配泊位:</span>
-                                <span className="text-cyan-400 font-mono font-bold">{selectedShipForDetail.assignedBerthId}</span>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">船首向:</span>
+                                <span className="text-slate-200">
+                                  {(selectedShipForDetail.headingDeg ?? 70).toFixed(1)}°
+                                </span>
                             </div>
-                        )}
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">呼号:</span>
+                                <span className="text-slate-200">{selectedShipForDetail.callSign || '-'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">航向:</span>
+                                <span className="text-slate-200">
+                                  {(selectedShipForDetail.courseOverGroundDeg ?? 334.3).toFixed(1)}°
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">IMO:</span>
+                                <span className="text-slate-200">{selectedShipForDetail.imo || '-'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">航速:</span>
+                                <span className="text-slate-200">
+                                  {(selectedShipForDetail.speedKnots ?? 0).toFixed(1)} 节
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">类型:</span>
+                                <span className="text-slate-300">{selectedShipForDetail.type}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">纬度:</span>
+                                <span className="text-slate-200">
+                                  {selectedShipForDetail.latitudeText || '29-56.795N'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">状态:</span>
+                                <span className="font-bold text-emerald-400">
+                                  {selectedShipForDetail.navStatusText ||
+                                    (selectedShipForDetail.status === 'waiting' ? '靠泊' :
+                                     selectedShipForDetail.status === 'navigating' ? '在航' :
+                                     selectedShipForDetail.status === 'docking' ? '靠泊' :
+                                     selectedShipForDetail.status === 'docked' ? '靠泊' : '离港')}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">经度:</span>
+                                <span className="text-slate-200">
+                                  {selectedShipForDetail.longitudeText || '121-42.778E'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 下半部分：尺度 / 计划信息 */}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-xs bg-slate-900/40 rounded-lg p-2 border border-slate-700/60">
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">船长:</span>
+                                <span className="text-slate-200">{selectedShipForDetail.length} m</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">目的地:</span>
+                                <span className="text-slate-200 truncate max-w-[120px]">
+                                  {selectedShipForDetail.destination || '-'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">船宽:</span>
+                                <span className="text-slate-200">{selectedShipForDetail.width} m</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">预到时间:</span>
+                                <span className="text-slate-200">
+                                  {selectedShipForDetail.etaFullText || 
+                                   `2025-09-12 ${selectedShipForDetail.etaOriginal || '00:00:00'}`}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">吃水:</span>
+                                <span className="text-slate-200">{selectedShipForDetail.draft} m</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-400">更新时间:</span>
+                                <span className="text-slate-200">
+                                  {selectedShipForDetail.lastUpdateTime || 
+                                   new Date().toISOString().replace('T', ' ').slice(0, 19)}
+                                </span>
+                            </div>
+                            {selectedShipForDetail.assignedBerthId && (
+                              <div className="flex justify-between col-span-2">
+                                  <span className="text-slate-400">分配泊位:</span>
+                                  <span className="text-cyan-400 font-bold">
+                                    {selectedShipForDetail.assignedBerthId}
+                                  </span>
+                              </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </>

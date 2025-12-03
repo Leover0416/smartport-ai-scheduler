@@ -354,6 +354,9 @@ export function generateCandidateBerthSlots(
     // 检查长度约束
     if (berth.length < ship.length * 1.1) continue; // 泊位长度需≥船舶长度×1.1
 
+    // 检查吃水深度上限（15米）
+    if (ship.draft > 15) continue;
+
     // 检查类型约束（油轮必须去A区）
     if (ship.type === '油轮' && berth.zone !== 'A') continue;
 
@@ -448,6 +451,11 @@ export function swapOperator(
 
   // 检查长度约束
   if (berth1Obj.length < ship2.length * 1.1 || berth2Obj.length < ship1.length * 1.1) {
+    return null;
+  }
+
+  // 检查吃水深度上限（15米）
+  if (ship1.draft > 15 || ship2.draft > 15) {
     return null;
   }
 
