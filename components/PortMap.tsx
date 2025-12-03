@@ -54,11 +54,12 @@ const MAP_ORIGINAL_HEIGHT = 500;
 const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBerthClick, processingShipIds = [] }) => {
   // 当前选中的泊位，用于显示信息弹窗
   const [selectedBerth, setSelectedBerth] = useState<Berth | null>(null);
-  // 缩放比例
+  // 缩放比例和容器尺寸
   const [scale, setScale] = useState(1);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 计算缩放比例，使地图完全填充容器（不留黑边）
+  // 计算缩放比例，保持宽高比不变形
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
@@ -66,12 +67,13 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
         const containerWidth = container.clientWidth;
         const containerHeight = container.clientHeight;
         
-        // 计算缩放比例，使用较大值以完全填充容器（可能会稍微裁剪边缘）
+        // 计算缩放比例，使用较小值以保持宽高比，避免变形
         const scaleX = containerWidth / MAP_ORIGINAL_WIDTH;
         const scaleY = containerHeight / MAP_ORIGINAL_HEIGHT;
-        const newScale = Math.max(scaleX, scaleY); // 取较大值以完全填充，不留黑边
+        const newScale = Math.min(scaleX, scaleY); // 取较小值以保持比例，不变形
         
         setScale(Math.max(0.1, Math.min(newScale, 3))); // 限制缩放范围在0.1到3之间
+        setContainerSize({ width: containerWidth, height: containerHeight });
       }
     };
 
@@ -196,22 +198,87 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans bg-slate-900" 
-      style={{ position: 'relative' }}
+      className="relative w-full h-full overflow-hidden rounded-lg shadow-inner select-none font-sans" 
+      style={{ 
+        position: 'relative',
+        background: 'transparent'
+      }}
     >
-      {/* 地图背景层 - 直接填满容器，不留黑边 */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="/地图背景.png" 
-          alt="地图背景"
-          className="w-full h-full"
-          style={{ objectFit: 'cover', display: 'block' }}
-        />
-      </div>
+      {/* 玻璃质感蒙版层 - 填充黑边区域，使用四个方向的遮罩 */}
+      {(() => {
+        if (containerSize.width === 0 || containerSize.height === 0) return null;
+        
+        const mapDisplayWidth = MAP_ORIGINAL_WIDTH * scale;
+        const mapDisplayHeight = MAP_ORIGINAL_HEIGHT * scale;
+        const mapLeft = (containerSize.width - mapDisplayWidth) / 2;
+        const mapTop = (containerSize.height - mapDisplayHeight) / 2;
+        const mapRight = mapLeft + mapDisplayWidth;
+        const mapBottom = mapTop + mapDisplayHeight;
+        
+        return (
+          <div className="absolute inset-0 z-[1] pointer-events-none">
+            {/* 上边黑边 */}
+            {mapTop > 0 && (
+              <div 
+                className="absolute left-0 right-0"
+                style={{
+                  top: 0,
+                  height: `${mapTop}px`,
+                  background: 'linear-gradient(to bottom, rgba(15, 23, 42, 0.92), rgba(59, 130, 246, 0.3))',
+                  backdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                  WebkitBackdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                }}
+              />
+            )}
+            
+            {/* 下边黑边 */}
+            {mapBottom < containerSize.height && (
+              <div 
+                className="absolute left-0 right-0"
+                style={{
+                  bottom: 0,
+                  height: `${containerSize.height - mapBottom}px`,
+                  background: 'linear-gradient(to top, rgba(15, 23, 42, 0.92), rgba(6, 182, 212, 0.3))',
+                  backdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                  WebkitBackdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                }}
+              />
+            )}
+            
+            {/* 左边黑边 */}
+            {mapLeft > 0 && (
+              <div 
+                className="absolute top-0 bottom-0"
+                style={{
+                  left: 0,
+                  width: `${mapLeft}px`,
+                  background: 'linear-gradient(to right, rgba(15, 23, 42, 0.92), rgba(59, 130, 246, 0.25))',
+                  backdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                  WebkitBackdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                }}
+              />
+            )}
+            
+            {/* 右边黑边 */}
+            {mapRight < containerSize.width && (
+              <div 
+                className="absolute top-0 bottom-0"
+                style={{
+                  right: 0,
+                  width: `${containerSize.width - mapRight}px`,
+                  background: 'linear-gradient(to left, rgba(15, 23, 42, 0.92), rgba(6, 182, 212, 0.25))',
+                  backdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                  WebkitBackdropFilter: 'blur(50px) saturate(180%) brightness(1.2)',
+                }}
+              />
+            )}
+          </div>
+        );
+      })()}
 
-      {/* 缩放容器 - 保持800x500的坐标系，通过transform scale适应容器 */}
+      {/* 缩放容器 - 保持800x500的坐标系，通过transform scale适应容器，保持宽高比不变形 */}
       <div 
-        className="absolute"
+        className="absolute z-[2]"
         style={{
           width: `${MAP_ORIGINAL_WIDTH}px`,
           height: `${MAP_ORIGINAL_HEIGHT}px`,
@@ -223,6 +290,14 @@ const PortMap: React.FC<PortMapProps> = ({ ships, berths, simulationPhase, onBer
           marginTop: `-${MAP_ORIGINAL_HEIGHT / 2}px`,
         }}
       >
+        {/* 1. 地图背景 - 填满800x500坐标系 */}
+        <div className="absolute z-0" style={{ width: '800px', height: '500px', left: 0, top: 0 }}>
+          <img 
+            src="/地图背景.png" 
+            alt="地图背景"
+            style={{ width: '800px', height: '500px', objectFit: 'cover', display: 'block' }}
+          />
+        </div>
 
 
       {/* 3. 风速特效 - 流动的线条和粒子 */}
