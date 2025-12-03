@@ -210,13 +210,13 @@ export async function generateOptimizerAgentMessage(context: AgentContext): Prom
   const prompt = `你是一个港口调度系统中的优化智能体。已完成多目标优化和博弈决策。
 
 优化结果：
-- VSP虚拟到港策略：已启用
+- 船舶能耗 - 航速关联属性策略：已启用
 - 预计批次节省燃油: ${totalSavings.toFixed(1)} 吨
 - 航道冲突检测: ${hasConflict ? '检测到冲突' : '无冲突'}
 - MARL算法：已收敛到帕累托最优解
 
 请生成一份专业的优化智能体报告，包括：
-1. VSP策略应用情况
+1. 船舶能耗 - 航速关联属性策略应用情况
 2. 燃油节省和碳排放效益
 3. 冲突检测结果
 4. 算法收敛状态
@@ -236,7 +236,7 @@ export async function generateOptimizerAgentMessage(context: AgentContext): Prom
 
   // Fallback template
   return `优化智能体：
-- 启用 VSP 虚拟到港策略
+- 启用船舶能耗 - 航速关联属性策略
 - 预计批次节省燃油: ${totalSavings.toFixed(1)} 吨
 - 航道冲突检测: ${hasConflict ? '检测到冲突' : '无'}
 - MARL 算法收敛: 达到帕累托最优解`;

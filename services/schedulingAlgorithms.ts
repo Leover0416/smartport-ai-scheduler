@@ -1,6 +1,6 @@
 /**
  * 核心调度算法实现
- * 包括：ETA修正、EOT计算、VSP计算、冲突检测等
+ * 包括：ETA修正、EOT计算、船舶能耗 - 航速关联属性计算、冲突检测等
  */
 
 import { Ship, Berth, TidePoint } from '../types';
@@ -92,10 +92,10 @@ export function calculateEOT(
   };
 }
 
-// ==================== 3. VSP计算 ====================
+// ==================== 3. 船舶能耗 - 航速关联属性计算 ====================
 
 /**
- * 计算虚拟到港策略（Virtual Arrival）的燃油节省
+ * 计算基于船舶能耗 - 航速关联属性的虚拟到港策略（Virtual Arrival）燃油节省
  * 基于船舶消耗曲线和最优经济航速区间
  */
 export function calculateVSP(
@@ -152,7 +152,7 @@ export function calculateVSP(
     // 计算所需航速以达到泊位可用时间
     const requiredSpeed = (distanceToPort * 60) / timeDiff; // 节
 
-    // 如果所需航速在经济航速范围内，启用VSP
+    // 如果所需航速在经济航速范围内，启用船舶能耗 - 航速关联属性策略
     if (requiredSpeed >= optimalSpeed && requiredSpeed <= baseSpeed) {
       const originalConsumption = getFuelConsumption(baseSpeed) * (distanceToPort / baseSpeed);
       const vspConsumption = getFuelConsumption(requiredSpeed) * (distanceToPort / requiredSpeed);
@@ -167,7 +167,7 @@ export function calculateVSP(
     }
   }
 
-  // 如果无法启用VSP，返回默认值
+  // 如果无法启用船舶能耗 - 航速关联属性策略，返回默认值
   return {
     vspSavings: 0,
     recommendedSpeed: 14, // 默认航速

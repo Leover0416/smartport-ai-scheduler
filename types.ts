@@ -43,8 +43,8 @@ export interface Ship {
   earliestOperationTime?: string; // EOT
   isDelayed?: boolean;
 
-  // Phase 1b: VSP Data
-  vspSavings?: number; // Fuel saved in tons
+  // Phase 1b: 船舶能耗 - 航速关联属性数据
+  vspSavings?: number; // 按船舶能耗 - 航速关联属性计算的节油量（吨）
   recommendedSpeed?: number; // knots
   virtualArrivalMode?: boolean;
 

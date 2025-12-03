@@ -106,7 +106,7 @@ const App: React.FC = () => {
           });
           addMessage(AgentType.RESOURCE, AgentType.SCHEDULER, resourceMessage, "info");
 
-          // 使用真实算法计算ETA修正、EOT和VSP
+          // 使用真实算法计算ETA修正、EOT和船舶能耗 - 航速关联属性
           setShips(prev => prev.map(s => {
               if (processingShipIds.includes(s.id)) {
                   // 1. ETA修正
@@ -123,7 +123,7 @@ const App: React.FC = () => {
                       s.length
                   );
 
-                  // 3. VSP计算（需要泊位可用时间，这里先用修正后的ETA）
+                  // 3. 船舶能耗 - 航速关联属性计算（需要泊位可用时间，这里先用修正后的ETA）
                   const vspResult = schedulingAlgorithms.calculateVSP(
                       s,
                       s.etaOriginal,

@@ -6,7 +6,7 @@ interface PhaseDetailPanelProps {
   phase: SimulationPhase;
   ships: Ship[];
   processingIds?: string[];
-  totalVspSavings?: number; // 总VSP节省
+  totalVspSavings?: number; // 总船舶能耗 - 航速关联属性节省
   carbonSaved?: number; // 减碳量
   hasConflict?: boolean; // 是否有冲突
   optimizationIterations?: number; // 优化迭代次数
@@ -69,10 +69,10 @@ const PhaseDetailPanel: React.FC<PhaseDetailPanelProps> = ({
             </table>
         </div>
 
-        {/* VSP Dashboard */}
+        {/* 船舶能耗 - 航速关联属性 Dashboard */}
         <div className="flex-1 flex flex-col min-h-0">
             <h4 className="text-xs font-bold text-emerald-500 mb-2 uppercase flex justify-between border-b border-slate-800 pb-1 shrink-0">
-                VSP 虚拟到港策略
+                船舶能耗 - 航速关联属性
                 <Zap size={14} />
             </h4>
             <div className="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-1">
@@ -157,7 +157,7 @@ const PhaseDetailPanel: React.FC<PhaseDetailPanelProps> = ({
                 </div>
 
                     <div className="border-l-2 border-emerald-500 pl-2.5 py-1.5 bg-emerald-900/10 rounded-r-sm">
-                        <div className="text-emerald-400 font-bold mb-0.5 text-xs">Step 2: 绿色调度 (VSP)</div>
+                        <div className="text-emerald-400 font-bold mb-0.5 text-xs">Step 2: 绿色调度 (船舶能耗 - 航速关联属性)</div>
                         <div className="text-slate-300 text-xs">应用 "虚拟到港" 策略</div>
                         <div className="space-y-0.5 mt-1 bg-black/20 p-1.5 rounded">
                              <div className="text-xs">总燃油节省: <span className="text-emerald-400">{totalVspSavings > 0 ? totalVspSavings.toFixed(1) : '4.2'} T</span></div>
